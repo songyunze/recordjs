@@ -85,22 +85,27 @@ var Generate = {
     this.startEventListener();
   },
   stop: function stop() {
-    this.endtime = new Date().getTime();
-    this.duration = this.endtime - this.starttime;
-  },
-  startEventListener: function startEventListener() {
     var _this = this;
 
-    console.log(this);
+    this.endtime = new Date().getTime();
+    this.duration = this.endtime - this.starttime;
     this.events.forEach(function (ele) {
-      ele.target.addEventListener(ele.event, _this.handler[ele.event]);
+      ele.target.removeEventListener(ele.event, _this.handler[ele.event]);
     });
   },
-  generateRecord: function generateRecord() {
+  startEventListener: function startEventListener() {
+    var _this2 = this;
+
+    // console.log(this)
+    this.events.forEach(function (ele) {
+      ele.target.addEventListener(ele.event, _this2.handler[ele.event]);
+    });
+  },
+  generateRecord: function generateRecord(id) {
     // console.log(this)
     var now = new Date().getTime();
     var record = {
-      id: 1,
+      id: id,
       time: now,
       duration: Generate.starttime - now
     };
@@ -110,59 +115,80 @@ var Generate = {
     // click 处理函数
     'click': function click(e) {
       // console.log
-      var record = generateRecord(); // click 事件的信息收集
+      var record = generateRecord(1); // click 事件的信息收集
+      // console.log(e)
 
-      console.log(e);
+      record.pointer = {
+        left: e.clientX,
+        top: e.clientY
+      };
+      record.domPath = Generate.getDompath(e.target);
+      console.log(record);
       recordArr.push(record);
     },
     'scroll': function scroll(e) {
-      var record = generateRecord(); // scroll 事件的信息收集
+      var record = generateRecord(2); // scroll 事件的信息收集
 
       recordArr.push(record);
     },
     'touchstart': function touchstart(e) {
-      var record = generateRecord(); // touchstart 事件的信息收集
+      var record = generateRecord(3); // touchstart 事件的信息收集
 
       recordArr.push(record);
     },
     'touchmove': function touchmove(e) {
-      var record = generateRecord(); // touchstart 事件的信息收集
+      var record = generateRecord(4); // touchstart 事件的信息收集
 
       recordArr.push(record);
     },
     'touchend': function touchend(e) {
-      var record = generateRecord(); // touchstart 事件的信息收集
+      var record = generateRecord(5); // touchstart 事件的信息收集
 
       recordArr.push(record);
     },
     'change': function change(e) {
-      var record = generateRecord(); // touchstart 事件的信息收集
+      var record = generateRecord(6); // touchstart 事件的信息收集
 
       recordArr.push(record);
     },
     'input': function input(e) {
-      var record = generateRecord(); // touchstart 事件的信息收集
+      var record = generateRecord(7); // touchstart 事件的信息收集
 
       recordArr.push(record);
     },
     // 浏览器回退/前进等事件
     'onpopstate': function onpopstate(e) {
-      var record = generateRecord(); // touchstart 事件的信息收集
+      var record = generateRecord(8); // touchstart 事件的信息收集
 
       recordArr.push(record);
     },
     // 浏览器跳入新路由事件
     'pushState': function pushState(e) {
-      var record = generateRecord(); // touchstart 事件的信息收集
+      var record = generateRecord(9); // touchstart 事件的信息收集
 
       recordArr.push(record);
     },
     // 浏览器替换路由事件
     'replaceState': function replaceState(e) {
-      var record = generateRecord(); // touchstart 事件的信息收集
+      var record = generateRecord(10); // touchstart 事件的信息收集
 
       recordArr.push(record);
     }
+  },
+  getDompath: function getDompath(ele) {
+    var t = ele;
+
+    for (var e = []; null != t.parentElement;) {
+      for (var n = 0, i = 0, a = 0; a < t.parentElement.childNodes.length; a += 1) {
+        var r = t.parentElement.childNodes[a];
+        r === t && (i = n), n += 1;
+      }
+
+      var o = t.nodeName.toLowerCase();
+      t.hasAttribute("id") && "" !== t.id ? e.unshift(o + "#" + t.id) : n > 1 ? e.unshift(" > " + o + ":nth-child(" + i + ")") : e.unshift(o), t = t.parentElement;
+    }
+
+    return e.slice(1).join(" ");
   }
 };
 var start = Generate.start;
