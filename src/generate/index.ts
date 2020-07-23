@@ -16,6 +16,8 @@ history.replaceState = _wr('replaceState');
 const Generate = {
   /** 操作记录列表 */
 recordArr:[],
+/** 请求记录列表 */
+requestArr:[],
 /** 操作开始时间点 */
 starttime:0,
 /** 操作结束时间点 */
@@ -27,7 +29,7 @@ width:0,
 /** 记录操作时的window.innerHeight */
 height:0,
 events:[{id:1,event:'click',target:document.documentElement},{id:2,event:'scroll',target:window},{id:3,event:'touchstart',target:document.documentElement},{id:4,event:'touchmove',target:document.documentElement},{id:5,event:'touchend',target:document.documentElement},{id:6,event:'change',target:document.documentElement},{id:7,event:'input',target:document.documentElement},{id:8,event:'onpopstate',target:window},
-,{id:9,event:'pushState',target:window},{id:10,event:'replaceState',target:window},
+,{id:9,event:'pushState',target:window},{id:10,event:'replaceState',target:window},{id:11,event:'request',target:window}
 ],
   /**
    *  收集用户操作信息
@@ -55,6 +57,7 @@ events:[{id:1,event:'click',target:document.documentElement},{id:2,event:'scroll
     this.events.forEach(ele =>{
       ele.target.addEventListener(ele.event,this.handler[ele.event].bind(this));
     })
+    window.addEventListener('xhrRequest',this.addRequest)
   },
   generateRecord(id:number):Record{
     // console.log(this)
@@ -130,6 +133,14 @@ events:[{id:1,event:'click',target:document.documentElement},{id:2,event:'scroll
       const record = this.generateRecord(10);
       // touchstart 事件的信息收集
       recordArr.push(record)
+    },
+    'request':function(e:any){
+      const {custom,responseText,status} = e.arguments;
+      
+      this.requestArr.push({
+        options:custom.options,responseText,status
+      })
+      console.log(this)
     }
   },
   getDompath(ele:HTMLElement){
@@ -180,5 +191,7 @@ export const stop = Generate.stop;
 export const startEventListener = Generate.startEventListener;
 export const generateRecord = Generate.generateRecord;
 export const recordArr = Generate.recordArr;
+export const requestArr = Generate.requestArr;
 export const handler = Generate.handler;
 export const events = Generate.events;
+export * from "../lib/xhr";
