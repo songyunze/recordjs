@@ -1,0 +1,16 @@
+# https://docs.travis-ci.com/user/languages/javascript-with-nodejs/
+# https://travis-ci.org/
+language: node_js
+node_js:
+  - "6"
+  - "8"
+before_install:
+- export TZ='Asia/Shanghai'
+install:
+  - npm install
+script:
+  - npm run build
+  - npm run codecov
+branches:
+  only:
+    - master
