@@ -353,19 +353,6 @@ function createNativeXMLHttpRequest() {
 
 window.XMLHttpRequest = CpicXMLHttpRequest;
 
-var _wr = function _wr(type) {
-  var orig = history[type];
-  return function () {
-    var rv = orig.apply(this, arguments);
-    var e = new Event(type);
-    e.arguments = arguments;
-    window.dispatchEvent(e);
-    return rv;
-  };
-};
-
-history.pushState = _wr('pushState');
-history.replaceState = _wr('replaceState');
 var Generate = {
   /** 操作记录列表 */
   recordArr: [],
@@ -441,7 +428,6 @@ var Generate = {
   start: function start() {
     // 记录收集信息时间
     this.starttime = new Date().getTime();
-    console.log(this);
     this.width = window.innerWidth;
     this.height = window.innerHeight; // 开启事件侦听
 
@@ -459,34 +445,12 @@ var Generate = {
   startEventListener: function startEventListener() {
     var _this2 = this;
 
-    // console.log(this)
     this.events.forEach(function (ele) {
-<<<<<<< HEAD
-      ele.target.addEventListener(ele.event, _this2.handler[ele.event]);
-=======
       ele.target.addEventListener(ele.event, _this2.handler[ele.event].bind(_this2));
->>>>>>> upstream/master
     });
     window.addEventListener('xhrRequest', this.addRequest);
   },
-<<<<<<< HEAD
-  debounce: function debounce(fn, wait) {
-    var pre = Date.now();
-    return function () {
-      var context = this;
-      var args = arguments;
-      var now = Date.now();
-
-      if (now - pre >= wait) {
-        fn.apply(context, args);
-        pre = Date.now();
-      }
-    };
-  },
-=======
->>>>>>> upstream/master
   generateRecord: function generateRecord(id) {
-    // console.log(this)
     var now = new Date().getTime();
     var record = {
       id: id,
@@ -498,112 +462,84 @@ var Generate = {
   handler: {
     // click 处理函数
     'click': function click(e) {
-<<<<<<< HEAD
-      // console.log
-      var record = generateRecord(1); // click 事件的信息收集
-=======
-      console.log(this); // console.log
-
-      var record = this.generateRecord(1); // click 事件的信息收集
->>>>>>> upstream/master
-      // console.log(e)
+      var record = Generate.generateRecord(1); // click 事件的信息收集
 
       record.pointer = {
         left: e.clientX,
         top: e.clientY
       };
       record.domPath = Generate.getDompath(e.target);
-      console.log(record);
-      recordArr.push(record);
-      console.log(recordArr);
-    },
-    'scroll': function scroll(e) {
-<<<<<<< HEAD
-      var record = generateRecord(2); // scroll 事件的信息收集
-=======
-      var record = this.generateRecord(2); // scroll 事件的信息收集
->>>>>>> upstream/master
-
-      recordArr.push(record);
-      console.log(e);
-    },
-    'touchstart': function touchstart(e) {
-<<<<<<< HEAD
-      var record = generateRecord(3); // touchstart 事件的信息收集
-
+      record.type = 'click';
       recordArr.push(record);
     },
-    'touchmove': function touchmove() {
-      Generate.debounce(function () {
-        var record = generateRecord(4); // touchstart 事件的信息收集
-=======
-      var record = this.generateRecord(3); // touchstart 事件的信息收集
+    'scroll': throttle(function (e) {
+      var record = Generate.generateRecord(2); // scroll 事件的信息收集
+      // record.type = 'scroll'
+      // recordArr.push(record)
+    }),
+    'touchstart': throttle(function (e) {
+      var record = Generate.generateRecord(3); // touchstart 事件的信息收集
 
+      record.type = 'scroll';
+      record.pointer = {
+        left: e.touches[0].screenX,
+        top: e.touches[0].screenY
+      };
       recordArr.push(record);
-    },
-    'touchmove': function touchmove(e) {
-      var record = this.generateRecord(4); // touchstart 事件的信息收集
->>>>>>> upstream/master
+    }),
+    'touchmove': throttle(function (e) {
+      var record = Generate.generateRecord(4); // scroll 事件的信息收集
+      // record.type = 'scroll'
 
-        console.log(record);
-        recordArr.push(record);
-      }, 100)();
-    },
-    'touchend': function touchend(e) {
-<<<<<<< HEAD
-      var record = generateRecord(5); // touchstart 事件的信息收集
-=======
-      var record = this.generateRecord(5); // touchstart 事件的信息收集
->>>>>>> upstream/master
-
+      record.type = 'touchmove';
+      console.log(e.touches);
+      record.pointer = {
+        left: e.touches[0].screenX,
+        top: e.touches[0].screenY
+      };
       recordArr.push(record);
-    },
+    }),
+    'touchend': throttle(function (e) {
+      var record = Generate.generateRecord(5); // touchstart 事件的信息收集
+
+      record.type = 'touchend';
+      record.pointer = {
+        left: e.changedTouches[0].screenX,
+        top: e.changedTouches[0].screenY
+      };
+      recordArr.push(record);
+    }),
     'change': function change(e) {
-<<<<<<< HEAD
-      var record = generateRecord(6); // touchstart 事件的信息收集
-=======
-      var record = this.generateRecord(6); // touchstart 事件的信息收集
->>>>>>> upstream/master
+      var record = Generate.generateRecord(6); // touchstart 事件的信息收集
 
+      record.type = 'change';
       recordArr.push(record);
     },
     'input': function input(e) {
-<<<<<<< HEAD
-      var record = generateRecord(7); // touchstart 事件的信息收集
-=======
-      var record = this.generateRecord(7); // touchstart 事件的信息收集
->>>>>>> upstream/master
+      var record = Generate.generateRecord(7); // touchstart 事件的信息收集
 
+      record.type = 'input';
       recordArr.push(record);
     },
     // 浏览器回退/前进等事件
     'onpopstate': function onpopstate(e) {
-<<<<<<< HEAD
-      var record = generateRecord(8); // touchstart 事件的信息收集
-=======
-      var record = this.generateRecord(8); // touchstart 事件的信息收集
->>>>>>> upstream/master
+      var record = Generate.generateRecord(8); // touchstart 事件的信息收集
 
+      record.type = 'onpopstate';
       recordArr.push(record);
     },
     // 浏览器跳入新路由事件
     'pushState': function pushState(e) {
-<<<<<<< HEAD
-      var record = generateRecord(9); // touchstart 事件的信息收集
-=======
-      var record = this.generateRecord(9); // touchstart 事件的信息收集
->>>>>>> upstream/master
+      var record = Generate.generateRecord(9); // touchstart 事件的信息收集
 
+      record.type = 'pushState';
       recordArr.push(record);
     },
     // 浏览器替换路由事件
     'replaceState': function replaceState(e) {
-<<<<<<< HEAD
-      var record = generateRecord(10); // touchstart 事件的信息收集
-=======
-      var record = this.generateRecord(10); // touchstart 事件的信息收集
->>>>>>> upstream/master
+      var record = Generate.generateRecord(10); // touchstart 事件的信息收集
 
+      record.type = 'replaceState';
       recordArr.push(record);
     },
     'request': function request(e) {
@@ -616,7 +552,6 @@ var Generate = {
         responseText: responseText,
         status: status
       });
-      console.log(this);
     }
   },
   getDompath: function getDompath(ele) {
@@ -634,7 +569,24 @@ var Generate = {
 
     return e.slice(1).join(" ").substring(2);
   }
-};
+}; // 节流函数
+
+function throttle(fn) {
+  var wait = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 1000;
+  var timer = 0;
+  return function () {
+    var context = this;
+    var args = arguments;
+    var now = new Date().valueOf();
+
+    if (now - timer >= wait) {
+      fn.apply(context, args);
+      timer = now;
+    }
+  };
+}
+
+Generate.start();
 var start = Generate.start;
 var stop = Generate.stop;
 var startEventListener = Generate.startEventListener;
@@ -644,4 +596,333 @@ var requestArr = Generate.requestArr;
 var handler = Generate.handler;
 var events = Generate.events;
 
-export { start, stop, startEventListener, generateRecord, recordArr, requestArr, handler, events };
+var replay = {
+  replatClick: function replatClick(item) {
+    var event = new MouseEvent('click', {
+      'view': window,
+      'bubbles': true,
+      'cancelable': true
+    });
+    document.querySelector(item.domPath).dispatchEvent(event);
+  },
+  replatScroll: function replatScroll() {},
+  replatTouch: function replatTouch() {},
+  replayChange: function replayChange() {},
+  // 初始化
+  playInit: function playInit() {},
+  // 视频长度
+  playTimer: 600000,
+  // 播放队列
+  playdata: [],
+  // 帧数
+  NFS: 60,
+  // 当前播放位置
+  playPosition: 0,
+  // 播放到的操作位
+  playDataIndex: 0,
+  player: null,
+  // 播放
+  play: function play() {
+    if (replay.player) {
+      return replay.player;
+    } else {
+      replay.player = setInterval(function () {
+        if (playdata[replay.playDataIndex].duration - replay.playPosition <= 1000 / replay.NFS) {
+          if (replay.playDataIndex >= playdata.length - 1) {
+            clearInterval(replay.player);
+            replay.player = null;
+            return;
+          }
+
+          console.log(playdata[replay.playDataIndex].type, replay.playDataIndex);
+          replay.playDataIndex = replay.playDataIndex + 1;
+        } else {
+          console.log('hhhh');
+        }
+
+        replay.playPosition = replay.playPosition + 1000 / replay.NFS;
+      }, 1000 / replay.NFS);
+    }
+  },
+  // 暂停
+  timeout: function timeout() {
+    console.log('暂停');
+    clearInterval(replay.player);
+    replay.player = null;
+    return true;
+  },
+  // 停止
+  suspend: function suspend() {
+    console.log('停止');
+    clearInterval(replay.player);
+    replay.player = null;
+    replay.playPosition = 0;
+    replay.playDataIndex = 0;
+    return true;
+  },
+  // 前进
+  forward: function forward() {},
+  // 后退
+  backoff: function backoff() {}
+};
+var playdata = [{
+  "id": 3,
+  "time": 1595829579674,
+  "duration": 5415,
+  "type": "scroll",
+  "pointer": {
+    "left": 272,
+    "top": 788.7999877929688
+  }
+}, {
+  "id": 5,
+  "time": 1595829579892,
+  "duration": 5633,
+  "type": "touchend",
+  "pointer": {
+    "left": 272,
+    "top": 788.7999877929688
+  }
+}, {
+  "id": 1,
+  "time": 1595829579897,
+  "duration": 5638,
+  "pointer": {
+    "left": 200,
+    "top": 793
+  },
+  "domPath": "div#app > div:nth-child(2) > div#cmp-footer > div > div:nth-child(2) > div:nth-child(2) > span",
+  "type": "click"
+}, {
+  "id": 3,
+  "time": 1595829581001,
+  "duration": 6742,
+  "type": "scroll",
+  "pointer": {
+    "left": 372,
+    "top": 776.7999877929688
+  }
+}, {
+  "id": 5,
+  "time": 1595829581220,
+  "duration": 6961,
+  "type": "touchend",
+  "pointer": {
+    "left": 372,
+    "top": 776.7999877929688
+  }
+}, {
+  "id": 1,
+  "time": 1595829581224,
+  "duration": 6965,
+  "pointer": {
+    "left": 321,
+    "top": 779
+  },
+  "domPath": "div#app > div:nth-child(2) > div#cmp-footer > div > div:nth-child(3) > div:nth-child(1) > img:nth-child(1)",
+  "type": "click"
+}, {
+  "id": 3,
+  "time": 1595829582560,
+  "duration": 8301,
+  "type": "scroll",
+  "pointer": {
+    "left": 262.3999938964844,
+    "top": 782.4000244140625
+  }
+}, {
+  "id": 5,
+  "time": 1595829582779,
+  "duration": 8520,
+  "type": "touchend",
+  "pointer": {
+    "left": 262.3999938964844,
+    "top": 782.4000244140625
+  }
+}, {
+  "id": 1,
+  "time": 1595829582786,
+  "duration": 8527,
+  "pointer": {
+    "left": 188,
+    "top": 786
+  },
+  "domPath": "div#app > div:nth-child(2) > div#cmp-footer > div > div:nth-child(2) > div:nth-child(1) > img:nth-child(1)",
+  "type": "click"
+}, {
+  "id": 3,
+  "time": 1595829583749,
+  "duration": 9490,
+  "type": "scroll",
+  "pointer": {
+    "left": 152.8000030517578,
+    "top": 783.2000122070312
+  }
+}, {
+  "id": 5,
+  "time": 1595829583967,
+  "duration": 9708,
+  "type": "touchend",
+  "pointer": {
+    "left": 152.8000030517578,
+    "top": 783.2000122070312
+  }
+}, {
+  "id": 1,
+  "time": 1595829583974,
+  "duration": 9715,
+  "pointer": {
+    "left": 54,
+    "top": 787
+  },
+  "domPath": "div#app > div:nth-child(2) > div#cmp-footer > div > div:nth-child(1) > div:nth-child(1) > img:nth-child(1)",
+  "type": "click"
+}, {
+  "id": 3,
+  "time": 1595829585391,
+  "duration": 11132,
+  "type": "scroll",
+  "pointer": {
+    "left": 352.8000183105469,
+    "top": 393.6000061035156
+  }
+}, {
+  "id": 5,
+  "time": 1595829585595,
+  "duration": 11336,
+  "type": "touchend",
+  "pointer": {
+    "left": 352.8000183105469,
+    "top": 393.6000061035156
+  }
+}, {
+  "id": 1,
+  "time": 1595829585600,
+  "duration": 11341,
+  "pointer": {
+    "left": 308,
+    "top": 314
+  },
+  "domPath": "div#app > div:nth-child(2) > div#app-mall > div:nth-child(4) > div:nth-child(1) > a:nth-child(2) > span",
+  "type": "click"
+}, {
+  "id": 3,
+  "time": 1595829587886,
+  "duration": 13627,
+  "type": "scroll",
+  "pointer": {
+    "left": 280.8000183105469,
+    "top": 552
+  }
+}, {
+  "id": 4,
+  "time": 1595829588105,
+  "duration": 13846,
+  "type": "touchmove",
+  "pointer": {
+    "left": 285.6000061035156,
+    "top": 532
+  }
+}, {
+  "id": 5,
+  "time": 1595829588634,
+  "duration": 14375,
+  "type": "touchend",
+  "pointer": {
+    "left": 351.20001220703125,
+    "top": 257.6000061035156
+  }
+}, {
+  "id": 3,
+  "time": 1595829594195,
+  "duration": 19936,
+  "type": "scroll",
+  "pointer": {
+    "left": 292,
+    "top": 356
+  }
+}, {
+  "id": 5,
+  "time": 1595829594404,
+  "duration": 20145,
+  "type": "touchend",
+  "pointer": {
+    "left": 292,
+    "top": 356
+  }
+}, {
+  "id": 1,
+  "time": 1595829594408,
+  "duration": 20149,
+  "pointer": {
+    "left": 224,
+    "top": 266
+  },
+  "domPath": "div#app > div:nth-child(2) > div#app-list > div:nth-child(2) > div:nth-child(2) > div#cmp-card > div:nth-child(1) > img",
+  "type": "click"
+}, {
+  "id": 3,
+  "time": 1595829597447,
+  "duration": 23188,
+  "type": "scroll",
+  "pointer": {
+    "left": 267.20001220703125,
+    "top": 314.3999938964844
+  }
+}, {
+  "id": 5,
+  "time": 1595829597659,
+  "duration": 23400,
+  "type": "touchend",
+  "pointer": {
+    "left": 267.20001220703125,
+    "top": 314.3999938964844
+  }
+}, {
+  "id": 1,
+  "time": 1595829597665,
+  "duration": 23406,
+  "pointer": {
+    "left": 194,
+    "top": 215
+  },
+  "domPath": "div#app > div:nth-child(2) > div:nth-child(1) > div > div#cmp-group > div#cmp-input > div > div:nth-child(2) > div > input",
+  "type": "click"
+}, {
+  "id": 7,
+  "time": 1595829599066,
+  "duration": 24807,
+  "type": "input"
+}, {
+  "id": 7,
+  "time": 1595829599386,
+  "duration": 25127,
+  "type": "input"
+}, {
+  "id": 7,
+  "time": 1595829599646,
+  "duration": 25387,
+  "type": "input"
+}, {
+  "id": 7,
+  "time": 1595829599888,
+  "duration": 25629,
+  "type": "input"
+}, {
+  "id": 7,
+  "time": 1595829600036,
+  "duration": 25777,
+  "type": "input"
+}, {
+  "id": 6,
+  "time": 1595829602558,
+  "duration": 28299,
+  "type": "change"
+}];
+var play = replay.play;
+var timeout = replay.timeout;
+var suspend = replay.suspend;
+var forward = replay.forward;
+var backoff = replay.backoff;
+
+export { start, stop, startEventListener, generateRecord, recordArr, requestArr, handler, events, play, timeout, suspend, forward, backoff };
