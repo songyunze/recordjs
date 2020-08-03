@@ -1,7 +1,6 @@
 {
   "name": "recordjs",
   "version": "0.0.1",
-  "repository": "",
   "main": "dist/record.esm.js",
   "author": "songyunze <314851009@qq.com>",
   "license": "MIT",
@@ -62,5 +61,14 @@
     "@babel/plugin-transform-runtime": "^7.1.0",
     "@babel/polyfill": "^7.0.0",
     "@babel/runtime": "^7.1.2"
-  }
+  },
+  "description": "",
+  "directories": {
+    "doc": "docs"
+  },
+  "keywords": [],
+  "bugs": {
+    "url": "https://github.com/hansel-zhou/recordjs/issues"
+  },
+  "homepage": "https://github.com/hansel-zhou/recordjs#readme"
 }
