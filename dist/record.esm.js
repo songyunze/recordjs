@@ -418,6 +418,10 @@ var Generate = {
     id: 11,
     event: 'request',
     target: window
+  }, {
+    id: 11,
+    event: 'focuschange',
+    target: window
   }],
 
   /**
@@ -436,17 +440,64 @@ var Generate = {
   stop: function stop() {
     var _this = this;
 
+    console.log("stop"); // console.log(this)
+    // 清除focuschange事件
+
+    clearInterval(this.handler.focustimer);
     this.endtime = new Date().getTime();
     this.duration = this.endtime - this.starttime;
     this.events.forEach(function (ele) {
+      // console.log(this.handler)
       ele.target.removeEventListener(ele.event, _this.handler[ele.event]);
     });
   },
   startEventListener: function startEventListener() {
     var _this2 = this;
 
+    // 初始化自定义事件
+    // 路由变化部分
+    var _wr = function _wr(type) {
+      var orig = history[type];
+      return function () {
+        var e = new Event(type);
+        e.arguments = arguments;
+        window.dispatchEvent(e); // 注意事件监听在url变更方法调用之前 也就是在事件监听的回调函数中获取的页面链接为跳转前的链接
+
+        var rv = orig.apply(this, arguments);
+        return rv;
+      };
+    };
+
+    history.pushState = _wr('pushState');
+    history.replaceState = _wr('replaceState');
+    window.addEventListener('pushState', function (e) {
+      var path = e && e.arguments.length > 2 && e.arguments[2];
+      var url = /^http/.test(path) ? path : location.protocol + '//' + location.host + path;
+      console.log('old:' + location.href, 'new:' + url);
+    });
+    window.addEventListener('replaceState', function (e) {
+      var path = e && e.arguments.length > 2 && e.arguments[2];
+      var url = /^http/.test(path) ? path : location.protocol + '//' + location.host + path;
+      console.log('old:' + location.href, 'new:' + url);
+    }); // focus 变化部分
+
+    var prevActive = document.activeElement;
+    this.handler.focustimer = setInterval(function () {
+      if (document.activeElement !== prevActive) {
+        // console.log("focuschange",document.activeElement)
+        prevActive = document.activeElement;
+        var e = new Event("focuschange");
+        e.arguments = {
+          target: document.activeElement
+        };
+        window.dispatchEvent(e);
+      }
+    }, 30);
     this.events.forEach(function (ele) {
-      ele.target.addEventListener(ele.event, _this2.handler[ele.event].bind(_this2));
+      // console.log()
+      _this2.handler[ele.event] = _this2.handler[ele.event].bind(_this2);
+      _this2.handler["".concat(ele.event, "tacking")] = false;
+      ele.target.addEventListener(ele.event, _this2.handler[ele.event]);
     });
     window.addEventListener('xhrRequest', this.addRequest);
   },
@@ -462,7 +513,7 @@ var Generate = {
   handler: {
     // click 处理函数
     'click': function click(e) {
-      var record = Generate.generateRecord(1); // click 事件的信息收集
+      var record = Generate.generateRecord.bind(this)(1); // click 事件的信息收集
 
       record.pointer = {
         left: e.clientX,
@@ -470,13 +521,30 @@ var Generate = {
       };
       record.domPath = Generate.getDompath(e.target);
       record.type = 'click';
+      console.log(record);
       recordArr.push(record);
     },
-    'scroll': throttle(function (e) {
-      var record = Generate.generateRecord(2); // scroll 事件的信息收集
-      // record.type = 'scroll'
-      // recordArr.push(record)
-    }),
+    'scroll': function scroll(e) {
+      var _this3 = this;
+
+      if (!this.handler.scrolltacking) {
+        window.requestAnimationFrame(function () {
+          var record = Generate.generateRecord.bind(_this3)(2);
+          record.domPath = Generate.getDompath(e.target.scrollingElement); // console.log(e.target.scrollingElement.scrollTop,e.target.scrollingElement.scrollLeft)
+          // scroll 事件的信息收集
+
+          record.type = 'scroll';
+          record.scroll = {
+            left: e.target.scrollingElement.scrollLeft,
+            top: e.target.scrollingElement.scrollTop
+          };
+          recordArr.push(record);
+          console.log(record);
+          _this3.handler.scrolltacking = false;
+        });
+        this.handler.scrolltacking = true;
+      }
+    },
     'touchstart': throttle(function (e) {
       var record = Generate.generateRecord(3); // touchstart 事件的信息收集
 
@@ -510,34 +578,46 @@ var Generate = {
       recordArr.push(record);
     }),
     'change': function change(e) {
-      var record = Generate.generateRecord(6); // touchstart 事件的信息收集
+      var record = Generate.generateRecord.bind(this)(6); // touchstart 事件的信息收集
 
       record.type = 'change';
       recordArr.push(record);
     },
     'input': function input(e) {
-      var record = Generate.generateRecord(7); // touchstart 事件的信息收集
+      var _this4 = this;
 
-      record.type = 'input';
-      recordArr.push(record);
+      if (!this.handler.inputtacking) {
+        window.requestAnimationFrame(function () {
+          var record = Generate.generateRecord.bind(_this4)(7);
+          record.domPath = Generate.getDompath(e.target); // console.log(e.target.scrollingElement.scrollTop,e.target.scrollingElement.scrollLeft)
+          // scroll 事件的信息收集
+
+          record.type = 'input';
+          record.value = e.target.value;
+          recordArr.push(record); // console.log(record)
+
+          _this4.handler.inputtacking = false;
+        });
+        this.handler.inputtacking = true;
+      }
     },
     // 浏览器回退/前进等事件
     'onpopstate': function onpopstate(e) {
-      var record = Generate.generateRecord(8); // touchstart 事件的信息收集
+      var record = Generate.generateRecord.bind(this)(8); // touchstart 事件的信息收集
 
       record.type = 'onpopstate';
       recordArr.push(record);
     },
     // 浏览器跳入新路由事件
     'pushState': function pushState(e) {
-      var record = Generate.generateRecord(9); // touchstart 事件的信息收集
+      var record = Generate.generateRecord.bind(this)(9); // touchstart 事件的信息收集
 
       record.type = 'pushState';
       recordArr.push(record);
     },
     // 浏览器替换路由事件
     'replaceState': function replaceState(e) {
-      var record = Generate.generateRecord(10); // touchstart 事件的信息收集
+      var record = Generate.generateRecord.bind(this)(10); // touchstart 事件的信息收集
 
       record.type = 'replaceState';
       recordArr.push(record);
@@ -552,6 +632,15 @@ var Generate = {
         responseText: responseText,
         status: status
       });
+    },
+    'focuschange': function focuschange(e) {
+      // console.log(e)
+      var record = Generate.generateRecord.bind(this)(12); // touchstart 事件的信息收集
+
+      record.domPath = Generate.getDompath(e.arguments.target);
+      record.type = 'focuschange';
+      console.log(record);
+      recordArr.push(record);
     }
   },
   getDompath: function getDompath(ele) {
@@ -567,7 +656,7 @@ var Generate = {
       t.hasAttribute("id") && "" !== t.id ? e.unshift(o + "#" + t.id) : n > 1 ? e.unshift(o + ":nth-child(" + (i + 1) + ")") : e.unshift(o), t = t.parentElement;
     }
 
-    return e.slice(1).join(" ").substring(2);
+    return e.slice(1).join(" ").substring(2) || "html";
   }
 }; // 节流函数
 
@@ -585,8 +674,6 @@ function throttle(fn) {
     }
   };
 }
-
-Generate.start();
 var start = Generate.start;
 var stop = Generate.stop;
 var startEventListener = Generate.startEventListener;
@@ -597,7 +684,7 @@ var handler = Generate.handler;
 var events = Generate.events;
 
 var replay = {
-  replatClick: function replatClick(item) {
+  replayClick: function replayClick(item) {
     var event = new MouseEvent('click', {
       'view': window,
       'bubbles': true,
@@ -605,11 +692,25 @@ var replay = {
     });
     document.querySelector(item.domPath).dispatchEvent(event);
   },
-  replatScroll: function replatScroll() {},
-  replatTouch: function replatTouch() {},
+  replayScroll: function replayScroll(item) {
+    // console.log(item)
+    document.querySelector(item.domPath).scrollTo({
+      left: item.scroll.left,
+      top: item.scroll.top
+    });
+  },
+  replayTouch: function replayTouch() {},
   replayChange: function replayChange() {},
+  replayInput: function replayInput(item) {
+    document.querySelector(item.domPath).value = item.value;
+  },
+  replayFocus: function replayFocus(item) {
+    document.querySelector(item.domPath).focus();
+  },
   // 初始化
-  playInit: function playInit() {},
+  playInit: function playInit(record) {
+    this.playData = record;
+  },
   // 视频长度
   playTimer: 600000,
   // 播放队列
@@ -623,21 +724,42 @@ var replay = {
   player: null,
   // 播放
   play: function play() {
+    var playdata = this.recordArr;
+
     if (replay.player) {
       return replay.player;
     } else {
       replay.player = setInterval(function () {
+        // 找不到下一个要播放的记录则结束播放
+        if (!playdata[replay.playDataIndex]) {
+          clearInterval(replay.player);
+          replay.player = null;
+          return;
+        }
+
         if (playdata[replay.playDataIndex].duration - replay.playPosition <= 1000 / replay.NFS) {
-          if (replay.playDataIndex >= playdata.length - 1) {
-            clearInterval(replay.player);
-            replay.player = null;
-            return;
+          // console.log(,replay.playDataIndex)
+          var item = playdata[replay.playDataIndex];
+
+          switch (item.type) {
+            case "click":
+              replay.replayClick(item);
+              break;
+
+            case "scroll":
+              replay.replayScroll(item);
+              break;
+
+            case "input":
+              replay.replayInput(item);
+
+            case "focuschange":
+              replay.replayFocus(item);
           }
 
-          console.log(playdata[replay.playDataIndex].type, replay.playDataIndex);
           replay.playDataIndex = replay.playDataIndex + 1;
         } else {
-          console.log('hhhh');
+          console.log('wait');
         }
 
         replay.playPosition = replay.playPosition + 1000 / replay.NFS;
@@ -664,265 +786,12 @@ var replay = {
   forward: function forward() {},
   // 后退
   backoff: function backoff() {}
-};
-var playdata = [{
-  "id": 3,
-  "time": 1595829579674,
-  "duration": 5415,
-  "type": "scroll",
-  "pointer": {
-    "left": 272,
-    "top": 788.7999877929688
-  }
-}, {
-  "id": 5,
-  "time": 1595829579892,
-  "duration": 5633,
-  "type": "touchend",
-  "pointer": {
-    "left": 272,
-    "top": 788.7999877929688
-  }
-}, {
-  "id": 1,
-  "time": 1595829579897,
-  "duration": 5638,
-  "pointer": {
-    "left": 200,
-    "top": 793
-  },
-  "domPath": "div#app > div:nth-child(2) > div#cmp-footer > div > div:nth-child(2) > div:nth-child(2) > span",
-  "type": "click"
-}, {
-  "id": 3,
-  "time": 1595829581001,
-  "duration": 6742,
-  "type": "scroll",
-  "pointer": {
-    "left": 372,
-    "top": 776.7999877929688
-  }
-}, {
-  "id": 5,
-  "time": 1595829581220,
-  "duration": 6961,
-  "type": "touchend",
-  "pointer": {
-    "left": 372,
-    "top": 776.7999877929688
-  }
-}, {
-  "id": 1,
-  "time": 1595829581224,
-  "duration": 6965,
-  "pointer": {
-    "left": 321,
-    "top": 779
-  },
-  "domPath": "div#app > div:nth-child(2) > div#cmp-footer > div > div:nth-child(3) > div:nth-child(1) > img:nth-child(1)",
-  "type": "click"
-}, {
-  "id": 3,
-  "time": 1595829582560,
-  "duration": 8301,
-  "type": "scroll",
-  "pointer": {
-    "left": 262.3999938964844,
-    "top": 782.4000244140625
-  }
-}, {
-  "id": 5,
-  "time": 1595829582779,
-  "duration": 8520,
-  "type": "touchend",
-  "pointer": {
-    "left": 262.3999938964844,
-    "top": 782.4000244140625
-  }
-}, {
-  "id": 1,
-  "time": 1595829582786,
-  "duration": 8527,
-  "pointer": {
-    "left": 188,
-    "top": 786
-  },
-  "domPath": "div#app > div:nth-child(2) > div#cmp-footer > div > div:nth-child(2) > div:nth-child(1) > img:nth-child(1)",
-  "type": "click"
-}, {
-  "id": 3,
-  "time": 1595829583749,
-  "duration": 9490,
-  "type": "scroll",
-  "pointer": {
-    "left": 152.8000030517578,
-    "top": 783.2000122070312
-  }
-}, {
-  "id": 5,
-  "time": 1595829583967,
-  "duration": 9708,
-  "type": "touchend",
-  "pointer": {
-    "left": 152.8000030517578,
-    "top": 783.2000122070312
-  }
-}, {
-  "id": 1,
-  "time": 1595829583974,
-  "duration": 9715,
-  "pointer": {
-    "left": 54,
-    "top": 787
-  },
-  "domPath": "div#app > div:nth-child(2) > div#cmp-footer > div > div:nth-child(1) > div:nth-child(1) > img:nth-child(1)",
-  "type": "click"
-}, {
-  "id": 3,
-  "time": 1595829585391,
-  "duration": 11132,
-  "type": "scroll",
-  "pointer": {
-    "left": 352.8000183105469,
-    "top": 393.6000061035156
-  }
-}, {
-  "id": 5,
-  "time": 1595829585595,
-  "duration": 11336,
-  "type": "touchend",
-  "pointer": {
-    "left": 352.8000183105469,
-    "top": 393.6000061035156
-  }
-}, {
-  "id": 1,
-  "time": 1595829585600,
-  "duration": 11341,
-  "pointer": {
-    "left": 308,
-    "top": 314
-  },
-  "domPath": "div#app > div:nth-child(2) > div#app-mall > div:nth-child(4) > div:nth-child(1) > a:nth-child(2) > span",
-  "type": "click"
-}, {
-  "id": 3,
-  "time": 1595829587886,
-  "duration": 13627,
-  "type": "scroll",
-  "pointer": {
-    "left": 280.8000183105469,
-    "top": 552
-  }
-}, {
-  "id": 4,
-  "time": 1595829588105,
-  "duration": 13846,
-  "type": "touchmove",
-  "pointer": {
-    "left": 285.6000061035156,
-    "top": 532
-  }
-}, {
-  "id": 5,
-  "time": 1595829588634,
-  "duration": 14375,
-  "type": "touchend",
-  "pointer": {
-    "left": 351.20001220703125,
-    "top": 257.6000061035156
-  }
-}, {
-  "id": 3,
-  "time": 1595829594195,
-  "duration": 19936,
-  "type": "scroll",
-  "pointer": {
-    "left": 292,
-    "top": 356
-  }
-}, {
-  "id": 5,
-  "time": 1595829594404,
-  "duration": 20145,
-  "type": "touchend",
-  "pointer": {
-    "left": 292,
-    "top": 356
-  }
-}, {
-  "id": 1,
-  "time": 1595829594408,
-  "duration": 20149,
-  "pointer": {
-    "left": 224,
-    "top": 266
-  },
-  "domPath": "div#app > div:nth-child(2) > div#app-list > div:nth-child(2) > div:nth-child(2) > div#cmp-card > div:nth-child(1) > img",
-  "type": "click"
-}, {
-  "id": 3,
-  "time": 1595829597447,
-  "duration": 23188,
-  "type": "scroll",
-  "pointer": {
-    "left": 267.20001220703125,
-    "top": 314.3999938964844
-  }
-}, {
-  "id": 5,
-  "time": 1595829597659,
-  "duration": 23400,
-  "type": "touchend",
-  "pointer": {
-    "left": 267.20001220703125,
-    "top": 314.3999938964844
-  }
-}, {
-  "id": 1,
-  "time": 1595829597665,
-  "duration": 23406,
-  "pointer": {
-    "left": 194,
-    "top": 215
-  },
-  "domPath": "div#app > div:nth-child(2) > div:nth-child(1) > div > div#cmp-group > div#cmp-input > div > div:nth-child(2) > div > input",
-  "type": "click"
-}, {
-  "id": 7,
-  "time": 1595829599066,
-  "duration": 24807,
-  "type": "input"
-}, {
-  "id": 7,
-  "time": 1595829599386,
-  "duration": 25127,
-  "type": "input"
-}, {
-  "id": 7,
-  "time": 1595829599646,
-  "duration": 25387,
-  "type": "input"
-}, {
-  "id": 7,
-  "time": 1595829599888,
-  "duration": 25629,
-  "type": "input"
-}, {
-  "id": 7,
-  "time": 1595829600036,
-  "duration": 25777,
-  "type": "input"
-}, {
-  "id": 6,
-  "time": 1595829602558,
-  "duration": 28299,
-  "type": "change"
-}];
+}; // const playdata = [{ "id": 3, "time": 1595829579674, "duration": 5415, "type": "scroll", "pointer": { "left": 272, "top": 788.7999877929688 } }, { "id": 5, "time": 1595829579892, "duration": 5633, "type": "touchend", "pointer": { "left": 272, "top": 788.7999877929688 } }, { "id": 1, "time": 1595829579897, "duration": 5638, "pointer": { "left": 200, "top": 793 }, "domPath": "div#app > div:nth-child(2) > div#cmp-footer > div > div:nth-child(2) > div:nth-child(2) > span", "type": "click" }, { "id": 3, "time": 1595829581001, "duration": 6742, "type": "scroll", "pointer": { "left": 372, "top": 776.7999877929688 } }, { "id": 5, "time": 1595829581220, "duration": 6961, "type": "touchend", "pointer": { "left": 372, "top": 776.7999877929688 } }, { "id": 1, "time": 1595829581224, "duration": 6965, "pointer": { "left": 321, "top": 779 }, "domPath": "div#app > div:nth-child(2) > div#cmp-footer > div > div:nth-child(3) > div:nth-child(1) > img:nth-child(1)", "type": "click" }, { "id": 3, "time": 1595829582560, "duration": 8301, "type": "scroll", "pointer": { "left": 262.3999938964844, "top": 782.4000244140625 } }, { "id": 5, "time": 1595829582779, "duration": 8520, "type": "touchend", "pointer": { "left": 262.3999938964844, "top": 782.4000244140625 } }, { "id": 1, "time": 1595829582786, "duration": 8527, "pointer": { "left": 188, "top": 786 }, "domPath": "div#app > div:nth-child(2) > div#cmp-footer > div > div:nth-child(2) > div:nth-child(1) > img:nth-child(1)", "type": "click" }, { "id": 3, "time": 1595829583749, "duration": 9490, "type": "scroll", "pointer": { "left": 152.8000030517578, "top": 783.2000122070312 } }, { "id": 5, "time": 1595829583967, "duration": 9708, "type": "touchend", "pointer": { "left": 152.8000030517578, "top": 783.2000122070312 } }, { "id": 1, "time": 1595829583974, "duration": 9715, "pointer": { "left": 54, "top": 787 }, "domPath": "div#app > div:nth-child(2) > div#cmp-footer > div > div:nth-child(1) > div:nth-child(1) > img:nth-child(1)", "type": "click" }, { "id": 3, "time": 1595829585391, "duration": 11132, "type": "scroll", "pointer": { "left": 352.8000183105469, "top": 393.6000061035156 } }, { "id": 5, "time": 1595829585595, "duration": 11336, "type": "touchend", "pointer": { "left": 352.8000183105469, "top": 393.6000061035156 } }, { "id": 1, "time": 1595829585600, "duration": 11341, "pointer": { "left": 308, "top": 314 }, "domPath": "div#app > div:nth-child(2) > div#app-mall > div:nth-child(4) > div:nth-child(1) > a:nth-child(2) > span", "type": "click" }, { "id": 3, "time": 1595829587886, "duration": 13627, "type": "scroll", "pointer": { "left": 280.8000183105469, "top": 552 } }, { "id": 4, "time": 1595829588105, "duration": 13846, "type": "touchmove", "pointer": { "left": 285.6000061035156, "top": 532 } }, { "id": 5, "time": 1595829588634, "duration": 14375, "type": "touchend", "pointer": { "left": 351.20001220703125, "top": 257.6000061035156 } }, { "id": 3, "time": 1595829594195, "duration": 19936, "type": "scroll", "pointer": { "left": 292, "top": 356 } }, { "id": 5, "time": 1595829594404, "duration": 20145, "type": "touchend", "pointer": { "left": 292, "top": 356 } }, { "id": 1, "time": 1595829594408, "duration": 20149, "pointer": { "left": 224, "top": 266 }, "domPath": "div#app > div:nth-child(2) > div#app-list > div:nth-child(2) > div:nth-child(2) > div#cmp-card > div:nth-child(1) > img", "type": "click" }, { "id": 3, "time": 1595829597447, "duration": 23188, "type": "scroll", "pointer": { "left": 267.20001220703125, "top": 314.3999938964844 } }, { "id": 5, "time": 1595829597659, "duration": 23400, "type": "touchend", "pointer": { "left": 267.20001220703125, "top": 314.3999938964844 } }, { "id": 1, "time": 1595829597665, "duration": 23406, "pointer": { "left": 194, "top": 215 }, "domPath": "div#app > div:nth-child(2) > div:nth-child(1) > div > div#cmp-group > div#cmp-input > div > div:nth-child(2) > div > input", "type": "click" }, { "id": 7, "time": 1595829599066, "duration": 24807, "type": "input" }, { "id": 7, "time": 1595829599386, "duration": 25127, "type": "input" }, { "id": 7, "time": 1595829599646, "duration": 25387, "type": "input" }, { "id": 7, "time": 1595829599888, "duration": 25629, "type": "input" }, { "id": 7, "time": 1595829600036, "duration": 25777, "type": "input" }, { "id": 6, "time": 1595829602558, "duration": 28299, "type": "change" }]
 var play = replay.play;
+var playInit = replay.playInit;
 var timeout = replay.timeout;
 var suspend = replay.suspend;
 var forward = replay.forward;
 var backoff = replay.backoff;
 
-export { start, stop, startEventListener, generateRecord, recordArr, requestArr, handler, events, play, timeout, suspend, forward, backoff };
+export { start, stop, startEventListener, generateRecord, recordArr, requestArr, handler, events, play, playInit, timeout, suspend, forward, backoff };
