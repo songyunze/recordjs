@@ -13,8 +13,9 @@ const Generate = {
     width: 0,
     /** 记录操作时的window.innerHeight */
     height: 0,
-    events: [{ id: 1, event: 'click', target: document.documentElement }, { id: 2, event: 'scroll', target: window }, { id: 3, event: 'touchstart', target: document.documentElement }, { id: 4, event: 'touchmove', target: document.documentElement }, { id: 5, event: 'touchend', target: document.documentElement }, { id: 6, event: 'change', target: document.documentElement }, { id: 7, event: 'input', target: document.documentElement }, { id: 8, event: 'onpopstate', target: window },
+    events: [{ id: 1, event: 'click', target: document.documentElement }, { id: 2, event: 'scroll', target: window }, { id: 3, event: 'touchstart', target: document.documentElement }, { id: 4, event: 'touchmove', target: document.documentElement }, { id: 5, event: 'touchend', target: document.documentElement }, { id: 6, event: 'change', target: document.documentElement }, { id: 7, event: 'input', target: document.documentElement }, { id: 8, event: 'popstate', target: window },
         , { id: 9, event: 'pushState', target: window }, { id: 10, event: 'replaceState', target: window }, { id: 11, event: 'request', target: window }, { id: 11, event: 'focuschange', target: window }
+        ,{id:12,event:'mousedown',target:document.documentElement},{id:13,event:'mousemove',target:document.documentElement},{id:12,event:'mouseup',target:document.documentElement}
     ],
     /**
      *  收集用户操作信息
@@ -57,16 +58,7 @@ const Generate = {
         };
         history.pushState = _wr('pushState');
         history.replaceState = _wr('replaceState');
-        window.addEventListener('pushState', function(e:any) {
-          var path = e && e.arguments.length > 2 && e.arguments[2];
-          var url = /^http/.test(path) ? path : (location.protocol + '//' + location.host + path);
-          console.log('old:'+location.href,'new:'+url);
-        });
-        window.addEventListener('replaceState', function(e:any) {
-          var path = e && e.arguments.length > 2 && e.arguments[2];
-          var url = /^http/.test(path) ? path : (location.protocol + '//' + location.host + path);
-          console.log('old:'+location.href,'new:'+url);
-        });
+        
 
         // focus 变化部分
         let prevActive = document.activeElement;
@@ -131,39 +123,62 @@ const Generate = {
             }
             
         },
-        'touchstart': throttle((e: any) => {
-            const record = Generate.generateRecord(3);
+        'touchstart': function(e:any) {
+            // const record = Generate.generateRecord.bind(this)(3);
             // touchstart 事件的信息收集
-            record.type = 'scroll'
-            record.pointer = {
-                left: e.touches[0].screenX,
-                top: e.touches[0].screenY 
-            }
+            const record = Generate.generateRecord.bind(this)(3);
+            record.domPath = Generate.getDompath(e.target)
+            console.log(e)
+            // scroll 事件的信息收集
+            record.type = 'touchstart'
+          //   record.touches = e.changedTouches[0]
+            record.touches = e.touches
+            record.targetTouches = e.targetTouches,
+            record.changedTouches = e.changedTouches,
+            recordArr.push(record)
+            console.log(record)
             recordArr.push(record)
 
-        }),
-        'touchmove': throttle((e: any) => {
-            const record = Generate.generateRecord(4);
+        },
+        'touchmove': function (e:any){
+            if (!this.handler.touchmovetacking) {
+                window.requestAnimationFrame(() => {
+                  const record = Generate.generateRecord.bind(this)(4);
+                  record.domPath = Generate.getDompath(e.target)
+                  console.log(e)
+                  // scroll 事件的信息收集
+                  record.type = 'touchmove'
+                //   record.touches = e.changedTouches[0]
+                  record.touches = e.touches
+                  record.targetTouches = e.targetTouches
+                  record.changedTouches = e.changedTouches
+                  record.pointer = {
+                    left: e.changedTouches[0].screenX,
+                    top: e.changedTouches[0].screenY 
+                }
+                  recordArr.push(record)
+                  console.log(record)
+                  this.handler.touchmovetacking = false;
+                });
+            
+                this.handler.touchmovetacking = true;
+              }
+        },
+        'touchend': function(e: any)  {
+            const record = Generate.generateRecord.bind(this)(5);
+            record.domPath = Generate.getDompath(e.target)
+            console.log(e)
             // scroll 事件的信息收集
-            // record.type = 'scroll'
-            record.type = 'touchmove'
-            console.log(e.touches)
-            record.pointer = {
-                left: e.touches[0].screenX,
-                top: e.touches[0].screenY 
-            }
-            recordArr.push(record)
-        }),
-        'touchend': throttle((e: any) => {
-            const record = Generate.generateRecord(5);
-            // touchstart 事件的信息收集
             record.type = 'touchend'
-            record.pointer = {
-                left: e.changedTouches[0].screenX,
-                top: e.changedTouches[0].screenY 
-            }
+        //   record.touches = e.changedTouches[0]
+            record.touches = e.touches
+            record.targetTouches = e.targetTouches,
+            record.changedTouches = e.changedTouches,
             recordArr.push(record)
-        }),
+            console.log(record)
+            record.type = 'touchend'
+            recordArr.push(record)
+        },
         'change': function (e: any) {
             const record = Generate.generateRecord.bind(this)(6);
             // touchstart 事件的信息收集
@@ -188,24 +203,45 @@ const Generate = {
             }
         },
         // 浏览器回退/前进等事件
-        'onpopstate': function (e: any) {
+        'popstate': function (e: any) {
+            // console.log(e)
+            console.log("location: " + document.location + ", state: " + JSON.stringify(e.state));
             const record = Generate.generateRecord.bind(this)(8);
             // touchstart 事件的信息收集
-            record.type = 'onpopstate'
+            record.type = 'popstate'
             recordArr.push(record)
         },
         // 浏览器跳入新路由事件
         'pushState': function (e: any) {
             const record = Generate.generateRecord.bind(this)(9);
             // touchstart 事件的信息收集
+            var state = e && e.arguments.length > 0 && JSON.stringify(e.arguments[0]);
+            var path = e && e.arguments.length > 2 && e.arguments[2];
+            var title =  e && e.arguments.length > 1 &&  e.arguments[1];
+            var url = /^http/.test(path) ? path : (location.protocol + '//' + location.host + path);
+            console.log('old:'+location.href,'new:'+url);
             record.type = 'pushState'
+            record.state = {
+                path,state,title
+            }
+            console.log(record)
             recordArr.push(record)
         },
         // 浏览器替换路由事件
         'replaceState': function (e: any) {
             const record = Generate.generateRecord.bind(this)(10);
+            var path = e && e.arguments.length > 2 && e.arguments[2];
+            var url = /^http/.test(path) ? path : (location.protocol + '//' + location.host + path);
+            var state = e && e.arguments.length > 0 && JSON.stringify(e.arguments[0]);
+            var path = e && e.arguments.length > 2 && e.arguments[2];
+            var title =  e && e.arguments.length > 1 &&  e.arguments[1];
+            var url = /^http/.test(path) ? path : (location.protocol + '//' + location.host + path);
+            console.log('old:'+location.href,'new:'+url);
             // touchstart 事件的信息收集
             record.type = 'replaceState'
+            record.state = {
+                path,state,title
+            }
             recordArr.push(record)
         },
         'request': function (e: any) {
@@ -223,6 +259,40 @@ const Generate = {
           record.type = 'focuschange'
           console.log(record)
           recordArr.push(record)
+        },
+        'mousedown': function (e: any) {
+            const record = Generate.generateRecord.bind(this)(13);
+            // click 事件的信息收集
+            record.pointer = { left: e.clientX, top: e.clientY }
+            record.domPath = Generate.getDompath(e.target)
+            record.type = 'mousedown'
+            console.log(record)
+            recordArr.push(record)
+        },
+        'mouseup': function (e: any) {
+            const record = Generate.generateRecord.bind(this)(14);
+            // click 事件的信息收集
+            record.pointer = { left: e.clientX, top: e.clientY }
+            record.domPath = Generate.getDompath(e.target)
+            record.type = 'mouseup'
+            console.log(record)
+            recordArr.push(record)
+        },
+        'mousemove': function (e: any) {
+            if (!this.handler.mousemovetacking) {
+                window.requestAnimationFrame(() => {
+                  const record = Generate.generateRecord.bind(this)(15);
+                // click 事件的信息收集
+                record.pointer = { left: e.clientX, top: e.clientY }
+                record.domPath = Generate.getDompath(e.target)
+                record.type = 'mousemove'
+                console.log(record)
+                recordArr.push(record)
+                  this.handler.mousemovetacking = false;
+                });
+            
+                this.handler.mousemovetacking = true;
+              }
         }
     },
     getDompath(ele: HTMLElement) {
@@ -284,7 +354,20 @@ export interface Record {
     scroll?:{
         left:number,
         top:number
-    }
+    },
+    state?:{
+        path:string,
+        state:string,
+        title:string
+    },
+    screen?:{
+        x:number,
+        y:number
+    },
+    touches?:any,
+    targetTouches?:any,
+    changedTouches?:any
+
 }
 
 // Generate.start()

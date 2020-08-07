@@ -1,3 +1,5 @@
+import { recordArr } from "../generate"
+
 var Util:any = {}
 
 Util.extend = function extend() {
@@ -135,7 +137,8 @@ function CpicXMLHttpRequest() {
     this.custom = {
         events: {},
         requestHeaders: {},
-        responseHeaders: {}
+        responseHeaders: {},
+        responseText:""
     }
 }
 
@@ -185,7 +188,12 @@ Util.extend(CpicXMLHttpRequest.prototype, {
             that.dispatchEvent(new Event(event.type /*, false, false, that*/ ))
             
         }
-        if(this.match){
+        if(Record.playing){
+           var idx =  Record.requestArr.findIndex( ele => {
+                ele.options.url == url && ele.options.type == method;
+            } )
+            var customResponse = Record.requestArr.splice(idx,1)[0]||{};
+            this.custom.responseText = customResponse.responseText;
             this.readyState = (CpicXMLHttpRequest as any).OPENED
             this.dispatchEvent(new Event('readystatechange' /*, false, false, this*/ ))
             return ;
@@ -212,7 +220,7 @@ Util.extend(CpicXMLHttpRequest.prototype, {
         }
     },
     setRequestHeader: function(name, value) {
-        if(this.match){
+        if(Record.playing){
             var requestHeaders = this.custom.requestHeaders
             if (requestHeaders[name]) requestHeaders[name] += ',' + value
             else requestHeaders[name] = value
@@ -227,8 +235,9 @@ Util.extend(CpicXMLHttpRequest.prototype, {
     send: function send(data) {
         var that = this
         this.custom.options.body = data
+        // console.log(Record.requestArr)
         // 这里可以拿到请求信息           
-        if(this.match){
+        if(Record.playing){
             // 走到mock环节
             // X-Requested-With header
             this.setRequestHeader('X-Requested-With', 'MockXMLHttpRequest')
@@ -250,7 +259,7 @@ Util.extend(CpicXMLHttpRequest.prototype, {
             that.statusText = HTTP_STATUS_CODES[200]
 
             // fix #92 #93 by @qddegtya
-            that.response = that.responseText = "asdfjiwe"
+            that.response = that.responseText = that.custom.responseText
 
             that.readyState = (CpicXMLHttpRequest as any).DONE
             that.dispatchEvent(new Event('readystatechange' /*, false, false, that*/ ))
@@ -263,6 +272,9 @@ Util.extend(CpicXMLHttpRequest.prototype, {
     abort: function abort() {
         // 原生 XHR
         this.custom.xhr.abort()
+    },
+    mockData: function mock(arr){
+        this.custom.requestArr = arr;
     }
 })
 
