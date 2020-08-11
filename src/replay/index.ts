@@ -75,7 +75,15 @@ const replay = {
 
     },
 
-    // 初始化
+    /**
+     * 回放初始化函数
+     * @date 2020-08-11
+     * @param {any} record:Record[] 收集的操作记录合集
+     * @param {any} requestArr:any[] 收集的请求数据合集
+     * @param {any} width:string 模拟时屏幕宽度
+     * @param {any} height:string 模拟时屏幕高度
+     * @returns {any}
+     */
     playInit(record:Record[],requestArr:any[],width:string,height:string): void {
         this.playData = record;
         this.requestArr = requestArr;

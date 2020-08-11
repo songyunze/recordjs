@@ -447,7 +447,7 @@ var Generate = {
   }],
 
   /**
-   *  收集用户操作信息
+   *  收集用户操作信息，在流程初始化时启动，会自动捕获请求，操作，提供回放时的模拟数据
    * @date 2020-07-23
    * @returns {void}
    */
@@ -459,6 +459,10 @@ var Generate = {
 
     this.startEventListener();
   },
+
+  /**
+   *  停止收集，回收事件,返回收集数据,可以提交给后台保存
+   */
   stop: function stop() {
     var _this = this;
 
@@ -472,6 +476,12 @@ var Generate = {
       // console.log(this.handler)
       ele.target.removeEventListener(ele.event, _this.handler[ele.event]);
     });
+    return {
+      recordArr: this.recordArr,
+      requestArr: this.requestArr,
+      width: this.width,
+      height: this.height
+    };
   },
   startEventListener: function startEventListener() {
     var _this2 = this;
@@ -843,7 +853,16 @@ var replay = {
 
     document.querySelector(item.domPath).dispatchEvent(evt);
   },
-  // 初始化
+
+  /**
+   * 回放初始化函数
+   * @date 2020-08-11
+   * @param {any} record:Record[] 收集的操作记录合集
+   * @param {any} requestArr:any[] 收集的请求数据合集
+   * @param {any} width:string 模拟时屏幕宽度
+   * @param {any} height:string 模拟时屏幕高度
+   * @returns {any}
+   */
   playInit: function playInit(record, requestArr, width, height) {
     var _this = this;
 

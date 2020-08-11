@@ -18,7 +18,7 @@ const Generate = {
         ,{id:12,event:'mousedown',target:document.documentElement},{id:13,event:'mousemove',target:document.documentElement},{id:12,event:'mouseup',target:document.documentElement}
     ],
     /**
-     *  收集用户操作信息
+     *  收集用户操作信息，在流程初始化时启动，会自动捕获请求，操作，提供回放时的模拟数据
      * @date 2020-07-23
      * @returns {void}
      */
@@ -30,7 +30,10 @@ const Generate = {
         // 开启事件侦听
         this.startEventListener();
     },
-    stop(): void {
+    /**
+     *  停止收集，回收事件,返回收集数据,可以提交给后台保存
+     */
+    stop() {
       console.log("stop")
       // console.log(this)
       // 清除focuschange事件
@@ -41,6 +44,12 @@ const Generate = {
           // console.log(this.handler)
             ele.target.removeEventListener(ele.event, this.handler[ele.event]);
         })
+        return {
+            recordArr:this.recordArr,
+            requestArr:this.requestArr,
+            width:this.width,
+            height:this.height
+        }
     },
     startEventListener(): void {
       // 初始化自定义事件
